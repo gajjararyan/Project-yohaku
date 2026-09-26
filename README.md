@@ -60,7 +60,7 @@ python run.py --self-test  # verify the scientific claims still hold
 | Outcome | Count | Meaning |
 |---|---:|---|
 | `CONFIRMED` | 0 | Nothing survived the physics gate — see §4 |
-| `ARTEFACT_REJECTED` | 1 | Flagged, then refused (a synthetic manoeuvre) — §3.1 |
+| `ARTEFACT_REJECTED` | 1 | Flagged, then refused (a synthetic manoeuvre) — §4.2 |
 | `ABSTAINED` | 1 | Element set 1002 days stale — withheld, not guessed |
 | `NO_ANOMALY` | 7 | Nothing above threshold |
 
@@ -201,42 +201,6 @@ model is wrong**, and it can only be noticed if written down. Operator judgement
 accumulates rather than being quietly overwritten — precisely the erosion the
 challenge owner describes.
 
-
-
-
----
-
-## 3. Answering the challenge questions directly
-
-**"How can AI help detect unusual changes in satellite orbits and determine which
-objects should be prioritized for observation?"**
-
-By proposing candidates cheaply and honestly, then refusing to escalate what it
-cannot physically justify — so scarce human attention is spent where attention
-actually changes outcomes.
-
-**"Can we really trust a security system that has never been tested against a
-real attack, only a simulation of what we imagine an attack looks like?"**
-
-No. This system has **never** seen a real anomaly, a real attack, or a real
-spoofed TLE. It says so in `out/never_seen.json`, generated at runtime rather
-than asserted in prose. The question is treated as a design requirement: the
-answer to "what if the attack is what we didn't imagine?" is *a system that
-abstains when it is out of its depth* — not a system with higher confidence.
-
-**NARETU: *"If an AI decides which objects we watch, what do those who build it
-and those who rely on it owe to each other, and to those who will come after?"***
-
-- **To those who rely on it:** the right to see *why* a target was ranked, the
-  right to disagree, and the right to an answer of "I don't know". A system that
-  forces a confident answer takes that right away.
-- **To those it does not flag:** an honest account of what was missed. Silence is
-  not neutral — an unfilled gap in coverage looks identical to a quiet sky.
-- **Across the time horizon:** every threshold here is an operational choice made
-  by people who will not live with the consequences. They are declared in
-  `src/config.py` so they can be argued with, which is the only form of
-  long-horizon accountability available to a weekend prototype.
-
 ---
 
 ### 2.5 Orbital stewardship: what we refuse to do, and why
@@ -282,6 +246,45 @@ in Orbit*, which asks directly about priority across objects and over future
 generations. We did not attempt to answer that challenge here, and we note that
 its Lakota knowledge-holding framing is not ours to translate into a scoring
 function.
+
+---
+
+
+
+
+
+---
+
+## 3. Answering the challenge questions directly
+
+**"How can AI help detect unusual changes in satellite orbits and determine which
+objects should be prioritized for observation?"**
+
+By proposing candidates cheaply and honestly, then refusing to escalate what it
+cannot physically justify — so scarce human attention is spent where attention
+actually changes outcomes.
+
+**"Can we really trust a security system that has never been tested against a
+real attack, only a simulation of what we imagine an attack looks like?"**
+
+No. This system has **never** seen a real anomaly, a real attack, or a real
+spoofed TLE. It says so in `out/never_seen.json`, generated at runtime rather
+than asserted in prose. The question is treated as a design requirement: the
+answer to "what if the attack is what we didn't imagine?" is *a system that
+abstains when it is out of its depth* — not a system with higher confidence.
+
+**NARETU: *"If an AI decides which objects we watch, what do those who build it
+and those who rely on it owe to each other, and to those who will come after?"***
+
+- **To those who rely on it:** the right to see *why* a target was ranked, the
+  right to disagree, and the right to an answer of "I don't know". A system that
+  forces a confident answer takes that right away.
+- **To those it does not flag:** an honest account of what was missed. Silence is
+  not neutral — an unfilled gap in coverage looks identical to a quiet sky.
+- **Across the time horizon:** every threshold here is an operational choice made
+  by people who will not live with the consequences. They are declared in
+  `src/config.py` so they can be argued with, which is the only form of
+  long-horizon accountability available to a weekend prototype.
 
 ---
 
