@@ -43,7 +43,9 @@ an alarm without naming the person answerable for it.
 - **Self-test:** `python run.py --self-test` — 11 assertions covering every
   scientific claim in this submission.
 
-Repository URL: **TO BE ADDED** (see the git commands in the final report).
+Repository URL: **https://github.com/gajjararyan/Project-yohaku** (public, MIT).
+Pushed and verified live: the repository page shows *Public*, branch `main`, and
+this README rendering correctly.
 
 ## AI-use disclosure
 

@@ -4,6 +4,9 @@
 *Youth-led challenge from Morocco. Presented by Karima El Kassem. Mentor: Hamid Idelbacha.*
 *Submitted for the Yohaku hackathon, 25–27 September 2026.*
 
+**Code:** https://github.com/gajjararyan/Project-yohaku (public, MIT)
+**Submitted by:** _see `docs/SUBMISSION.md`_
+
 **Submission title:** *Seeing Less: a detector that knows when it is wrong, and
 who answers when it is.*
 
