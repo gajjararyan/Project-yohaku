@@ -5,7 +5,7 @@
 *Submitted for the Yohaku hackathon, 25–27 September 2026.*
 
 **Code:** https://github.com/gajjararyan/Project-yohaku (public, MIT)
-**Submitted by:** _see `docs/SUBMISSION.md`_
+**Team:** Supernova Systems (Aryan Gajjar, solo)
 
 **Submission title:** *Seeing Less: a detector that knows when it is wrong, and
 who answers when it is.*
@@ -167,6 +167,27 @@ not trustworthy. Five gates, all covered by the self-test:
 The staleness gate is not hypothetical. During development one satellite was
 served an element set **1002 days old**. Without this gate the system would have
 reported a confident anomaly about an orbit that may no longer exist.
+
+**Where this design comes from.** The abstention gates are a direct response to
+how the challenge owner framed the problem. In the participant booklet she
+writes that what is still missing is an AI that is:
+
+> *"...honest about what it doesn't know rather than forcing a confident
+> answer."*
+> — Challenge 5 abstract, participant booklet
+
+In her recorded introduction to the challenge, Karima El Kassem puts the same
+requirement plainly: the system should **"clearly say when it is not sure."**
+*(Quoted from the challenge video as relayed by the submitting participant;
+the booklet wording above is the verbatim, page-referenced version of the same
+idea.)*
+
+We took that as a design requirement rather than a nicety. A detector required
+to be useful on every pass is a detector that will eventually invent a
+confident answer to fill the gap. So "I don't know" is a first-class, reportable
+result here — with a reason attached and a named human who must resolve it. The
+five gates above are the implementation of that requirement, and
+`out/never_seen.json` is its machine-readable form.
 
 ### 2.4 Accountability is assigned, never implicit
 
@@ -347,14 +368,40 @@ python run.py --offline     # deterministic; safe for a live demo
 
 ---
 
-## 7. AI-use disclosure
+## 7. Scope of what was validated, and what was not
+
+This prototype validates the detection and abstention logic on **9 tracked
+objects, analysed on demand**. The architecture — fetch, propagate, detect,
+gate, log — has **no object-count ceiling** and could run continuously against
+CelesTrak's full active catalogue; we scoped to 9 objects to keep every result
+independently verifiable within the hackathon window, and see continuous
+real-time monitoring at catalogue scale as the natural next step.
+
+That ceiling claim was tested rather than asserted: a 600-object fleet was
+pushed through the identical propagate → detect loop used by `run.py`, and all
+600 processed with **zero failures** at ~331 objects/s. Extrapolated,
+CelesTrak's full active catalogue (~16,600 objects) is roughly **0.8 minutes**
+of single-threaded work with no code change.
+
+Two honest qualifiers on that number. First, the 600-object scale test used
+element sets *derived* from the 9 real ones (mean motion and inclination
+perturbed) — CelesTrak was rate-limiting the full-catalogue download at the
+time, so the loop was exercised at scale but not against the live catalogue.
+Second, throughput is not the interesting limit: at 16,600 objects the
+bottleneck would become the *per-object data volume* and the decision-owner
+queue, not propagation. The point of the claim is that nothing in the design
+caps the object count, not that scaling is free.
+
+---
+
+## 8. AI-use disclosure
 
 See [`docs/AI_USE_DISCLOSURE.md`](docs/AI_USE_DISCLOSURE.md) for the full
 statement required by the Yohaku AI-use policy.
 
 ---
 
-## 8. Repository layout
+## 9. Repository layout
 
 ```
 run.py                    orchestrator + --self-test

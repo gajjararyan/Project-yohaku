@@ -16,10 +16,12 @@ Youth-led, Morocco. Presented by Karima El Kassem. Mentor: Hamid Idelbacha.
 
 ## Participant / team name(s)
 
-> **TO BE FILLED IN BY THE SUBMITTER.**
-> The booklet requires participant or team names in the entry. Add them here
-> and in the top of `README.md` before submitting. If you worked alone, enter
-> your own name; if you formed a team at the opening, list every member.
+**Team name:** Supernova Systems
+**Participant:** Aryan Gajjar (solo participant)
+
+Submitted as a solo entry under the team name *Supernova Systems*. The booklet
+asks for participant/team names in the entry, and requires one team member to
+submit one final entry — that member is Aryan Gajjar.
 
 ## Short summary (for a judge skimming — ~90 words)
 
