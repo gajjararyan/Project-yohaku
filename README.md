@@ -215,6 +215,52 @@ and those who rely on it owe to each other, and to those who will come after?"**
 
 ---
 
+### 2.5 Orbital stewardship: what we refuse to do, and why
+
+> *This system ranks nothing by value at risk. It has no basis for preferring a
+> crewed satellite over a weather satellite when both are at risk, and declines
+> to imply otherwise.*
+
+That sentence is emitted at runtime into `out/never_seen.json` and printed in
+every console run. It is the sharpest limit in this submission, and it is worth
+being explicit about the reasoning.
+
+**The trade-off is real and we do not pretend otherwise.** When two objects are
+at risk, something has to give: observation time, a manoeuvre, a shutdown
+decision. Deciding what to protect first is genuinely a *normative* question.
+A detector that ranked a crewed satellite above a weather satellite would be
+making a value judgement on behalf of operators, regulators, and the
+communities those satellites serve — and it would be presenting that judgement
+as though it were a measurement, because the ranking would arrive as a number.
+
+**What responsible priority-across-actors reasoning would require:**
+
+- published, contestable value-at-risk inputs, with a stated provenance;
+- an agreed weighting, and a record of **who set the weights and on what
+  grounds**;
+- a way for affected parties to contest the weighting, not merely observe it;
+- some accounting for the people behind the object, not just the object.
+
+None of that exists here. We do not have authority to set those weights, and
+inventing them would be the most consequential error available to us.
+
+**So the system refuses the task rather than improvising it.** This is the same
+discipline that governs abstention elsewhere in the pipeline: where the evidence
+does not support a claim, the honest output is *no claim*, clearly labelled.
+It would have been easy — and would have looked impressive — to add a
+`value_at_risk` score and rank the findings by it. That is precisely why it is
+left out. The `stakes` field on each object (*"Six people are aboard; loss of
+control is a life-safety event."*) is descriptive context for the human reader,
+**not** an input to any ranking, and the system never acts on it.
+
+This is also the point at which our work touches Challenge 2, *Seven Generations
+in Orbit*, which asks directly about priority across objects and over future
+generations. We did not attempt to answer that challenge here, and we note that
+its Lakota knowledge-holding framing is not ours to translate into a scoring
+function.
+
+---
+
 ## 4. Two negative results, reported rather than hidden
 
 ### 4.1 The system detected nothing, and said so

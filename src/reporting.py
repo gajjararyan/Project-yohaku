@@ -80,11 +80,15 @@ def render_console(
         lines.append("")
 
     register = never_seen_register()
+    limits = list(register["limitations"]) + list(REPORT_ONLY_STEWARDSHIP_LIMITS)
     lines.append("-" * 69)
     lines.append("WHAT THIS SYSTEM HAS NEVER BEEN SHOWN")
-    for item in register["limitations"][:5]:
+    for item in limits[:5]:
         lines.append(f"  - {item}")
-    lines.append(f"  ... and {len(register['limitations']) - 5} more in out/never_seen.json")
+    lines.append(f"  ... and {len(limits) - 5} more in out/never_seen.json")
+    lines.append("")
+    lines.append("STEWARDSHIP SCOPE (what it deliberately will not do)")
+    lines.append(f"  - {STEWARDSHIP_LIMITATION}")
     lines.append("")
     lines.append("HUMAN DECISIONS RECORDED: " + str(len(log.entries)))
     lines.append(
@@ -93,6 +97,30 @@ def render_console(
     )
     lines.append("=" * 69)
     return "\n".join(lines)
+
+
+STEWARDSHIP_LIMITATION = (
+    "This system ranks nothing by value at risk. It has no basis for "
+    "preferring a crewed satellite over a weather satellite when both are at "
+    "risk, and declines to imply otherwise."
+)
+
+# Extra stewardship limits emitted only in the published report. They are kept
+# out of config.NEVER_SEEN_REGISTER because that list is also imported by the
+# self-test, whereas these are editorial statements about scope.
+REPORT_ONLY_STEWARDSHIP_LIMITS = [
+    STEWARDSHIP_LIMITATION,
+    "Priority across actors is a normative question, not a technical one. "
+    "Weighting a crewed satellite above a weather satellite encodes a value "
+    "judgement that belongs to operators, regulators and affected communities "
+    "--- not to a detector. Doing it badly here would launder a political "
+    "choice through the appearance of a number.",
+    "Doing it responsibly would require published, contestable value-at-risk "
+    "inputs, agreed weighting, and a record of who set the weights and why. "
+    "None of that exists here, so the system refuses the task rather than "
+    "improvising it. It would be easy to add a 'risk score' column; that is "
+    "precisely why it is left out.",
+]
 
 
 def write_reports(
@@ -110,11 +138,22 @@ def write_reports(
         json.dumps([f.to_dict() for f in findings], indent=2), encoding="utf-8"
     )
 
-    register_path = config.OUT_DIR / "never_seen.json"
-    register_path.write_text(json.dumps(never_seen_register(), indent=2), encoding="utf-8")
-
     log_path = config.OUT_DIR / "decision_log.json"
     log_path.write_text(log.to_json(), encoding="utf-8")
+
+    # Build the register ONCE, enriched with the stewardship scope, and use that
+    # same object for both the standalone file and the run summary. Previously
+    # the file was written from a bare never_seen_register() call, so the
+    # stewardship limits appeared in summary.json but were missing from
+    # never_seen.json -- caught by inspecting the generated artefact.
+    register = dict(never_seen_register())
+    register["limitations"] = list(register["limitations"]) + list(
+        REPORT_ONLY_STEWARDSHIP_LIMITS
+    )
+    register["stewardship_scope"] = STEWARDSHIP_LIMITATION
+
+    register_path = config.OUT_DIR / "never_seen.json"
+    register_path.write_text(json.dumps(register, indent=2), encoding="utf-8")
 
     summary = {
         "generated_utc": datetime.now(timezone.utc).isoformat(),

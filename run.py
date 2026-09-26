@@ -224,7 +224,11 @@ def main() -> int:
         return run_self_test()
 
     print("[run] Yohaku Challenge 5 - anomaly detection prototype")
-    records = data_source.load_tracked(offline=args.offline)
+    # ONE budget for the whole run, shared by the fleet fetch and the
+    # cross-epoch second-opinion phase. Without this the second phase issues
+    # another N requests and doubles the worst-case wall time.
+    budget = data_source._FetchBudget()
+    records = data_source.load_tracked(offline=args.offline, budget=budget)
     if not records:
         print("[run] no TLEs available. Run once online, or check the cache.")
         return 1
@@ -268,7 +272,9 @@ def main() -> int:
         cross: Optional[dict] = None
         old_record = baseline_records.get(record.norad_id)
         if not args.offline and old_record is not None:
-            second = data_source.fetch_second_epoch(record.norad_id)
+            second = data_source.fetch_second_epoch(
+                record.norad_id, budget=budget
+            )
             if second is not None:
                 cross = orbits.cross_epoch_divergence(old_record, second)
         if args.cross_epoch and args.offline:

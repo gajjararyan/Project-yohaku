@@ -59,6 +59,30 @@ CELESTRAK_CATNR_URL = (
 # Per-satellite fallback that proved reliable under load during testing.
 FALLBACK_TLE_URL = "https://tle.ivanstanojevic.me/api/tle/{norad_id}"
 HTTP_TIMEOUT_S = 45
+
+# Default socket timeout for ANY http call that does not pass one explicitly.
+# Kept small on purpose: every call site passes an explicit, tighter value, and
+# this is the backstop that stops an un-timed call from hanging a run.
+HTTP_DEFAULT_TIMEOUT_S = 10
+
+# A fresh clone with no cache must fetch element sets one object at a time, and
+# the upstream services rate-limit aggressively (CelesTrak returns HTTP 403 after
+# a few rapid calls; the mirror occasionally stalls). Without a bound this
+# produced a first run exceeding five minutes, which reads as "hung".
+#
+# These bounds make the worst case bounded and visible instead of indefinite:
+#   - short per-request timeouts, so one stalled endpoint cannot block a run
+#   - a per-object attempt cap, so a rate-limited source is abandoned quickly
+#   - a TOTAL budget covering BOTH the initial fleet fetch AND the cross-epoch
+#     second-opinion fetches, because the second phase issues another N requests
+#     and would otherwise double the worst case
+# The run then reports exactly which objects could not be resolved, rather than
+# silently presenting a partial fleet as complete.
+HTTP_CONNECT_TIMEOUT_S = 8
+HTTP_FALLBACK_TIMEOUT_S = 12
+MAX_FETCH_ATTEMPTS_PER_OBJECT = 2
+TOTAL_FETCH_BUDGET_S = 60
+
 CACHE_TTL_HOURS = 12
 
 

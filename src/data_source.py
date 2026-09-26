@@ -13,6 +13,7 @@ explicitly:
 from __future__ import annotations
 
 import json
+import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
@@ -67,10 +68,49 @@ class TleRecord:
         return f"<TleRecord {self.norad_id} {self.name!r} via {self.source}>"
 
 
-def _http_json(url: str, timeout: int = config.HTTP_TIMEOUT_S):
+def _http_json(url: str, timeout: float = config.HTTP_DEFAULT_TIMEOUT_S):
     request = urllib.request.Request(url, headers={"User-Agent": config.USER_AGENT})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.load(response)
+
+
+def _http_text(url: str, timeout: float = config.HTTP_FALLBACK_TIMEOUT_S) -> str:
+    """Fetch a plain-text (non-JSON) response, e.g. FORMAT=tle."""
+    request = urllib.request.Request(url, headers={"User-Agent": config.USER_AGENT})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
+class _FetchBudget:
+    """Bounds TOTAL network time across a whole run, so it can never hang.
+
+    The upstream services are rate-limited and occasionally slow. Without a
+    budget, a fresh clone with no cache spends minutes in serial fallback
+    requests and looks broken. With it, the run degrades to a partial fleet and
+    says so, which is both faster and more honest.
+
+    A SINGLE instance is threaded through both the initial fleet fetch and the
+    cross-epoch second-opinion fetches, because the second phase issues another
+    N requests and would otherwise double the worst case.
+    """
+
+    def __init__(self, seconds: float = config.TOTAL_FETCH_BUDGET_S) -> None:
+        self.deadline = time.monotonic() + seconds
+        self.exhausted = False
+
+    def remaining(self) -> float:
+        left = self.deadline - time.monotonic()
+        if left <= 0:
+            self.exhausted = True
+        return max(0.0, left)
+
+    def timeout_for(self, preferred: float) -> float:
+        """Clamp a requested timeout to whatever budget is left."""
+        return max(1.0, min(float(preferred), self.remaining()))
+
+    def can_attempt(self) -> bool:
+        self.remaining()
+        return not self.exhausted
 
 
 def _normalise(raw: Dict[str, object], fallback_id: int, source: str) -> Optional[TleRecord]:
@@ -157,7 +197,11 @@ def _cache_is_fresh(cache: Dict[str, object]) -> bool:
 
 
 # ----------------------------------------------------------------- public --
-def load_tracked(offline: bool = False, verbose: bool = True) -> List[TleRecord]:
+def load_tracked(
+    offline: bool = False,
+    verbose: bool = True,
+    budget: "_FetchBudget" = None,  # type: ignore[assignment]
+) -> List[TleRecord]:
     """Return a TLE for every object in :data:`config.TRACKED_OBJECTS`.
 
     Order of preference: fresh cache, bulk CelesTrak fetch, per-satellite
@@ -168,11 +212,17 @@ def load_tracked(offline: bool = False, verbose: bool = True) -> List[TleRecord]
     cache = _read_cache()
     records: Dict[int, TleRecord] = {}
 
+    if budget is None:
+        budget = _FetchBudget()
+
     if not offline and not _cache_is_fresh(cache):
         if verbose:
             print("[data] seeding cache from CelesTrak (one bulk request)...")
         try:
-            bulk = _http_json(config.CELESTRAK_URL.format(group="active"))
+            bulk = _http_json(
+                config.CELESTRAK_URL.format(group="active"),
+                timeout=budget.timeout_for(config.HTTP_CONNECT_TIMEOUT_S * 3),
+            )
             by_id = {}
             for entry in bulk:
                 rec = _normalise(entry, -1, "celestrak")
@@ -187,6 +237,7 @@ def load_tracked(offline: bool = False, verbose: bool = True) -> List[TleRecord]
             if verbose:
                 print(f"[data] bulk fetch unavailable ({type(exc).__name__}); using fallback")
 
+    unresolved: List[int] = []
     for spec in config.TRACKED_OBJECTS:
         norad = int(spec["norad"])  # type: ignore[arg-type]
         cached = (cache.get("records") or {}).get(str(norad))
@@ -195,23 +246,34 @@ def load_tracked(offline: bool = False, verbose: bool = True) -> List[TleRecord]
             continue
         if offline:
             continue
-        try:
-            raw = _http_json(config.FALLBACK_TLE_URL.format(norad_id=norad))
-            rec = _normalise(raw, norad, "fallback-mirror")
-            if rec:
-                records[norad] = rec
-                continue
-        except Exception as exc:  # noqa: BLE001
-            if verbose:
-                print(f"[data] {norad} unavailable via fallback ({type(exc).__name__})")
-        try:  # last resort: single object from the bulk source
-            raw = _http_json(config.CELESTRAK_CATNR_URL.format(norad_id=norad))
-            if isinstance(raw, list) and raw:
-                rec = _normalise(raw[0], norad, "celestrak")
+        if budget.exhausted:
+            unresolved.append(norad)
+            continue
+
+        # Per-object attempt cap: try the mirror, then CelesTrak, and give up.
+        for attempt in range(config.MAX_FETCH_ATTEMPTS_PER_OBJECT):
+            if budget.exhausted:
+                break
+            try:
+                if attempt == 0:
+                    raw = _http_json(
+                        config.FALLBACK_TLE_URL.format(norad_id=norad),
+                        timeout=budget.timeout_for(config.HTTP_FALLBACK_TIMEOUT_S),
+                    )
+                    rec = _normalise(raw, norad, "fallback-mirror")
+                else:
+                    text = _http_text(
+                        config.CELESTRAK_CATNR_URL.format(norad_id=norad),
+                        timeout=budget.timeout_for(config.HTTP_FALLBACK_TIMEOUT_S),
+                    )
+                    rec = _parse_tle_text(text, norad, "celestrak-catnr")
                 if rec:
                     records[norad] = rec
-        except Exception:  # noqa: BLE001
-            pass
+                    break
+            except Exception:  # noqa: BLE001 - best-effort, reported below
+                continue
+        if norad not in records:
+            unresolved.append(norad)
 
     if not offline:
         merged = dict(cache.get("records") or {})  # type: ignore[arg-type]
@@ -222,6 +284,13 @@ def load_tracked(offline: bool = False, verbose: bool = True) -> List[TleRecord]
     resolved = list(records.values())
     if verbose:
         print(f"[data] resolved {len(resolved)}/{len(config.TRACKED_OBJECTS)} tracked objects")
+        if unresolved:
+            # Never let a partial fleet read as a complete one. An object we
+            # could not fetch is absent from the analysis entirely, so saying so
+            # is the difference between "no anomalies" and "no data".
+            print(f"[data] WARNING: {len(unresolved)} object(s) could not be "
+                  f"resolved and are ABSENT from this run: "
+                  f"{', '.join(str(n) for n in unresolved)}")
     return resolved
 
 
@@ -240,7 +309,11 @@ def _parse_tle_text(text: str, norad_id: int, source: str) -> Optional[TleRecord
     return TleRecord(norad_id, name.strip(), line1, line2, source)
 
 
-def fetch_second_epoch(norad_id: int, verbose: bool = False) -> Optional[TleRecord]:
+def fetch_second_epoch(
+    norad_id: int,
+    verbose: bool = False,
+    budget: "_FetchBudget" = None,  # type: ignore[assignment]
+) -> Optional[TleRecord]:
     """Fetch an independently published element set for one object.
 
     Used by the cross-epoch detector. This requests the *current* fit for a
@@ -248,16 +321,20 @@ def fetch_second_epoch(norad_id: int, verbose: bool = False) -> Optional[TleReco
     set already in our cache. The cache is deliberately NOT updated, so the
     original fit remains available as the "before" observation.
 
-    Returns ``None`` when no distinct second epoch can be obtained; the caller
-    must treat that as *no evidence*, never as agreement.
+    Pass the run-wide ``budget`` so the cross-epoch phase cannot double the
+    worst-case wall time. Returns ``None`` when no distinct second epoch can be
+    obtained; the caller must treat that as *no evidence*, never as agreement.
     """
+    if budget is not None and not budget.can_attempt():
+        return None
     url = config.CELESTRAK_CATNR_URL.format(norad_id=norad_id)
     try:
-        request = urllib.request.Request(
-            url, headers={"User-Agent": config.USER_AGENT}
-        )
-        with urllib.request.urlopen(request, timeout=config.HTTP_TIMEOUT_S) as response:
-            payload = response.read().decode("utf-8", errors="replace")
+        if budget is not None:
+            payload = _http_text(
+                url, timeout=budget.timeout_for(config.HTTP_FALLBACK_TIMEOUT_S)
+            )
+        else:
+            payload = _http_text(url, timeout=config.HTTP_FALLBACK_TIMEOUT_S)
     except Exception as exc:  # noqa: BLE001
         if verbose:
             print(f"[data] second epoch unavailable for {norad_id}: {type(exc).__name__}")
