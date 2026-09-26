@@ -230,7 +230,11 @@ def main() -> int:
     budget = data_source._FetchBudget()
     records = data_source.load_tracked(offline=args.offline, budget=budget)
     if not records:
-        print("[run] no TLEs available. Run once online, or check the cache.")
+        print(
+            "[run] No element sets available and none bundled.\n"
+            "      Run once with network access first:  python run.py\n"
+            "      Or re-clone the repository, which includes a small bundled sample."
+        )
         return 1
 
     specs = _spec_by_id()

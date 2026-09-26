@@ -177,7 +177,7 @@ def write_reports(
             for status in ("CONFIRMED", "ABSTAINED", "ARTEFACT_REJECTED", "NO_ANOMALY")
         },
         "findings": [f.to_dict() for f in findings],
-        "never_seen": never_seen_register(),
+        "never_seen": register,
         "human_decisions": json.loads(log.to_json())["summary"],
     }
     summary_path = config.OUT_DIR / "summary.json"

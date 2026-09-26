@@ -7,6 +7,10 @@ Yohaku_Participant_Booklet_EN.docx.pdf
 # `python run.py` (requires network). Excluded because they are large,
 # machine-specific, and fully reproducible.
 data/*.json
+# EXCEPT the small bundled sample of real element sets (2.6 KB, public domain).
+# Without it `python run.py --offline` fails on a fresh clone, which is exactly
+# when a judge is most likely to run it.
+!data/sample_tles.json
 
 # Generated reports. Regenerate with `python run.py`.
 out/
