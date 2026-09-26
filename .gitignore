@@ -1,0 +1,22 @@
+# The organiser's participant booklet. Not redistributed here: it is
+# organiser material, it is 1.4 MB, and it contains community-attributed
+# content that is better accessed from the official Yohaku Hub.
+Yohaku_Participant_Booklet_EN.docx.pdf
+
+# Cached TLEs and the pinned cross-epoch baseline: regenerate with
+# `python run.py` (requires network). Excluded because they are large,
+# machine-specific, and fully reproducible.
+data/*.json
+
+# Generated reports. Regenerate with `python run.py`.
+out/
+
+# Scratch/verification scripts used during development. Scoped to the repo
+# ROOT only: an unscoped `_.py` pattern would also match `src/__init__.py`
+# and silently drop the package marker, breaking `python run.py` on a fresh
+# clone. Caught by inspecting the staged file list, not by running tests.
+/_*.py
+
+.venv/
+__pycache__/
+*.pyc

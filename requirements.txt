@@ -1,0 +1,10 @@
+# Yohaku Challenge 5 - accountable orbital anomaly detector
+#
+# Deliberately minimal. The detector is arithmetic, not a deep-learning stack:
+# adding PyTorch or scikit-learn would imply a trained model, and this
+# submission deliberately has none (see docs/AI_USE_DISCLOSURE.md section 4).
+#
+# Verified working on Python 3.9.13 (the version in the local .venv).
+
+numpy==2.0.2
+sgp4>=2.23
